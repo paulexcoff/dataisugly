@@ -1,0 +1,66 @@
+---
+title: "yike"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(readr)
+
+religious <- readr::read_csv("words_religiuos_rate.csv")%>%as.data.frame()
+
+hdi <- read_csv("hdi.csv", col_types = cols_only(hdi2018 = col_number(), 
+                                                           name = col_guess()), skip = 1)%>%as.data.frame()
+
+corruption <- readr::read_csv("data.csv")%>%as.data.frame()
+
+df <- inner_join(hdi, religious) %>% inner_join(corruption) 
+df<- df %>% 
+  mutate(atheism = unaffiliated / (jews + other + folkReligions + buddhists + hindus + unaffiliated + muslims + chistians))
+
+```
+
+## Regression with all variables
+```{r}
+full<-lm(corruptionScore~exp(hdi2018)+I((exp(hdi2018))^2)+sqrt(atheism), data=df) #there's a bit of heteroscedasticity, so I'm power transforming hdi, but the model still works without.
+
+summary(full)
+
+```
+
+## Regression with HDI alone
+```{r warning=FALSE}
+hdi2<-lm(corruptionScore~exp(hdi2018)+I((exp(hdi2018))^2), data=df)
+summary(hdi2)
+```
+
+```{r warning=FALSE}
+  ggplot(df, aes(exp(hdi2018), corruptionScore, label = name)) + geom_point() +stat_smooth(method=lm, formula= y~exp(x)+I(exp(x))^2)
+```
+
+
+##Regression with atheism alone
+```{r warning=FALSE}
+
+ath<-lm(corruptionScore~sqrt(atheism), data=df)
+
+summary(ath)
+```
+
+```{r warning=FALSE}
+ggplot(df, aes(sqrt(atheism), corruptionScore, label = name)) + geom_point() +stat_smooth(method=lm,formula=y~x)
+
+```
+
+
